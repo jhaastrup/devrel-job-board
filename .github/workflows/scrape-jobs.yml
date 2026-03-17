@@ -1,0 +1,80 @@
+name: Scrape DevRel Jobs
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 9:00 AM UTC = 10:00 AM WAT (Lagos)
+  workflow_dispatch:        # allow manual trigger from GitHub Actions tab
+
+permissions:
+  contents: write   # push jobs.json back to the repo
+  issues: write     # create the daily reminder Issue
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run job scraper
+        id: scraper
+        run: node scripts/scrape-jobs.mjs
+
+      - name: Commit updated jobs.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/jobs.json
+          if git diff --cached --quiet; then
+            echo "No changes to jobs.json today."
+          else
+            git commit -m "chore: update jobs.json [$(date +'%Y-%m-%d')]"
+            git push
+          fi
+
+      - name: Create daily reminder Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require('fs');
+            const date = new Date().toLocaleDateString('en-GB', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            // Read jobs.json to build a summary table
+            let jobs = [];
+            try { jobs = JSON.parse(fs.readFileSync('public/jobs.json', 'utf8')); } catch {}
+
+            // Filter to jobs fetched today
+            const today = new Date().toISOString().slice(0, 10);
+            const todayJobs = jobs.filter(j => (j.fetchedAt || '').startsWith(today));
+
+            const tableRows = todayJobs.slice(0, 15).map(j =>
+              `| [${j.title}](${j.url}) | ${j.company} | ${j.location} |`
+            ).join('\n');
+
+            const body = [
+              `⏰ **Good morning! Here are today's open DevRel roles** (${todayJobs.length} new today, ${jobs.length} total).`,
+              '',
+              '### Remote DevRel openings — ' + date,
+              '',
+              '| Role | Company | Location |',
+              '|---|---|---|',
+              tableRows || '| _No new jobs today — check back tomorrow_ | | |',
+              '',
+              '---',
+              '> 📋 [View your full job board](https://devrel-job-board.app) &nbsp;·&nbsp; Close this issue once you\'ve reviewed it.',
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `🔔 Daily DevRel Jobs — ${date}`,
+              body,
+              labels: ['daily-digest'],
+            });

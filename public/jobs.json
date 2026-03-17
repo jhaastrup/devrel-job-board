@@ -1,0 +1,24 @@
+[
+  {
+    "id": "mongodb-senior-developer-advocate",
+    "title": "Senior Developer Advocate",
+    "company": "MongoDB",
+    "location": "Ireland",
+    "salary": "Not listed",
+    "url": "https://www.mongodb.com/careers/job/?gh_jid=7241758",
+    "source": "Greenhouse",
+    "category": "saas",
+    "fetchedAt": "2026-03-17T14:37:38.446Z"
+  },
+  {
+    "id": "mongodb-senior-product-manager--python-developer-experience",
+    "title": "Senior Product Manager, Python Developer Experience",
+    "company": "MongoDB",
+    "location": "Ireland",
+    "salary": "Not listed",
+    "url": "https://www.mongodb.com/careers/job/?gh_jid=7388900",
+    "source": "Greenhouse",
+    "category": "saas",
+    "fetchedAt": "2026-03-17T14:37:38.446Z"
+  }
+]
